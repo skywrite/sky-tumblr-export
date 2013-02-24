@@ -1,0 +1,47 @@
+{
+  "name": "sky-tumblr-export",
+  "version": "0.0.1",
+  "description": "Export your Tumblr blog into Markdown. Use it with Sky if you like.",
+  "homepage": [
+    ""
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "tumblr",
+    "markdown",
+    "export",
+    "dump",
+    "sky",
+    "blog",
+    "static"
+  ],
+  "author": "JP Richardson <jprichardson@gmail.com>",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": ""
+    }
+  ],
+  "dependencies": {
+    "commander": "~1.1.1",
+    "pdc": "~0.1.1",
+    "request": "~2.14.0",
+    "colors": "~0.6.0-1",
+    "string": "~1.2.1",
+    "fs-extra": "~0.5.0",
+    "cl": "0.0.1",
+    "batchflow": "~0.3.2",
+    "markdown-page": "~0.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha test"
+  },
+  "bin": {
+    "potter-wordpress": "./bin/sky-tumblr-export"
+  },
+  "preferGlobal": true
+}

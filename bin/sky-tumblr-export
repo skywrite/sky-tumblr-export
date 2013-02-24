@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+
+var program = require('commander')
+  , colors = require('colors')
+  , path = require('path')
+  , pandoc = require('pdc')
+  , request = require('request')
+  , S = require('string')
+  , fs = require('fs-extra')
+  , cl = require('cl')
+  , batch = require('batchflow')
+
+var DEFAULT_API_KEY = "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
+  , URL = "http://api.tumblr.com/v2/blog/{{url}}/{{resource}}?api_key={{api_key}}"
+
+program
+  .version(require('../package.json').version)
+  .option('-u, --url [url]', 'REQUIRED. The url of the Tumblr blog.')
+  .option('-d, --dir <dir>', 'The directory to dump the files. Default is the current directory.', process.cwd())
+  .option('--api-key <apikey>', 'The API key. Optional.', DEFAULT_API_KEY)
+  .parse(process.argv);
+
+if (!program.url) return program.outputHelp();
+
+URL = S(URL).template({url: program.url, api_key: program.apiKey}).s
+
+function main () {
+  console.log('Fetching articles...')
+  
+  function fetchBlogInfo () {
+    var url = S(URL).template({resource: 'info'}).s
+    request({url: url, json: true}, function(err, resp, body) {
+      if (err || resp.statusCode !== 200) cl.exit(100, err)
+      outputSkyConfig(body.response)
+    })
+  }
+
+  function outputSkyConfig (blogInfo) {
+    if (!blogInfo || !blogInfo.blog) cl.exit(101, "Could not get blog info.")
+    blogInfo = blogInfo.blog
+
+    var skyConfig = {
+      blog: {}, 
+      articles: {urlformat: '{{slug}}', 
+      index: 'index.html'}, 
+      build: {outputDir: 'public/'}, 
+      partials: {}
+    }
+    
+    skyConfig.blog.name = blogInfo.name || 'BLOG NAME'
+    skyConfig.blog.url = blogInfo.url || program.url
+    skyConfig.blog.tagline = blogInfo.description || 'DESCRIPTION'
+
+    var configFile = path.join(program.dir, 'sky', 'config.json')
+    fs.outputFileSync(configFile, JSON.stringify(skyConfig, null, 2))
+
+    fetchArticles(blogInfo.posts)
+  }
+
+  function fetchArticles (postCount) {
+    var offset = 0
+      , limit = 20 //max as defined by API
+      , steps = postCount / limit
+
+    //is there a rem?
+    steps = postCount % limit === 0 ? steps : Math.floor(steps) + 1
+
+    URL = URL + '&offset={{offset}}&limit={{limit}}'
+    URL = S(URL).template({resource: 'posts', limit: limit}).s //limit doesn't change
+    function fetchIt (i) {
+      //console.log(offset)
+      var url = S(URL).template({offset: offset.toString()}).s
+      console.log(url)
+
+
+      offset += limit
+      if (i < steps)
+        fetchIt(i + 1)
+      else
+        done()
+    }
+    fetchIt(1)
+
+  }
+
+  function done () {
+    console.log('Done')
+  }
+
+  fetchBlogInfo()
+}
+
+//main()
+
+var u = "http://api.tumblr.com/v2/blog/techneur.tumblr.com/posts?api_key=fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4&offset=0&limit=20"
+request({url: u, json: true}, function(err, resp, body) {
+  iterateArticles(u, body.response, function() {
+    console.log('done')
+  })
+}
+
+
+function iterateArticles (url, data, callback) {
+  if (!data || !data.posts) cl.exit(102, "Got a bad response from %s", url)
+  var articles = data.posts
+
+  batch(articles).par()
+  .each(function(i, article, next) {
+    
+  })
+  .error(function(err) {
+    console.error(err)
+  })
+  .end(function() {
+    callback()
+  })
+}
+
+function logArticle (title, date) {
+  var text = colors.cyan(S('Got').padLeft(10)) + ' : ' + colors.green('[' + S(date.toDateString()).padRight(12) + '] ') + title
+  console.log(text)
+}
+
