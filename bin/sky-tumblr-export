@@ -9,6 +9,7 @@ var program = require('commander')
   , fs = require('fs-extra')
   , cl = require('cl')
   , batch = require('batchflow')
+  , MarkdownPage = require('markdown-page').MarkdownPage
 
 var DEFAULT_API_KEY = "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
   , URL = "http://api.tumblr.com/v2/blog/{{url}}/{{resource}}?api_key={{api_key}}"
@@ -97,7 +98,7 @@ request({url: u, json: true}, function(err, resp, body) {
   iterateArticles(u, body.response, function() {
     console.log('done')
   })
-}
+})
 
 
 function iterateArticles (url, data, callback) {
@@ -106,10 +107,11 @@ function iterateArticles (url, data, callback) {
 
   batch(articles).par()
   .each(function(i, article, next) {
-    
+    outputArticle(article, next)
   })
   .error(function(err) {
     console.error(err)
+    console.error(err.stack)
   })
   .end(function() {
     callback()
@@ -120,4 +122,51 @@ function logArticle (title, date) {
   var text = colors.cyan(S('Got').padLeft(10)) + ' : ' + colors.green('[' + S(date.toDateString()).padRight(12) + '] ') + title
   console.log(text)
 }
+
+function outputArticle (article, next) {
+  var mdp = MarkdownPage.create()
+    , date = new Date(article.date)
+
+  function gotoNext () { //output file too
+    var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
+      , file = path.join(program.dir, ds, article.slug + '.md')
+      , data = mdp.genOutput()
+
+    fs.outputFile(file, data, function(err) {
+      if (err) console.error(err)
+
+      logArticle(article.title, date)
+      next()
+    })
+  }
+
+  mdp.title = article.title
+  mdp.metadata.id = article.id
+  mdp.metadata.link = article.post_url
+  mdp.metadata.slug = article.slug
+  mdp.metadata.date = date
+
+  if (article.state === 'published')
+    mdp.metadata.publish = date
+  
+  mdp.metadata.tags = article.tags
+
+  if (article.format !== 'html') {
+    this.markdown = article.body
+    gotoNext()
+  } else {
+    pandoc(article.body, 'html', 'markdown', function(err, result) {
+      if (err) { 
+        mdp.markdown = util.format('**[ERROR: sky-tumblr-export: %s]**',err)
+        gotoNext()
+      } else {
+        mdp.markdown = result
+        gotoNext()
+      }
+    })
+  }
+}
+
+
+
 
