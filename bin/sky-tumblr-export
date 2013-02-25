@@ -73,7 +73,7 @@ function main () {
       offset += limit
     }
 
-    batch(urls).par(2)
+    batch(urls).seq()
     .each(function(i, url, next) {
       request({url: url, json: true}, function(err, resp, body) {
         if (err || resp.statusCode !== 200) console.error(err)
@@ -101,7 +101,7 @@ function iterateArticles (url, data, callback) {
   if (!data || !data.posts) cl.exit(102, "Got a bad response from %s", url)
   var articles = data.posts
 
-  batch(articles).par()
+  batch(articles).seq()
   .each(function(i, article, next) {
     outputArticle(article, next)
   })
