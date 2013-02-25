@@ -125,7 +125,7 @@ function outputArticle (article, next) {
 
   function gotoNext () { //output file too
     var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
-      , file = path.join(program.dir, ds, article.slug + '.md')
+      , file = path.join(program.dir, 'articles', ds, article.slug + '.md')
       , data = mdp.genOutput()
 
     fs.outputFile(file, data, function(err) {
