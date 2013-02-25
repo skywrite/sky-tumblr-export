@@ -62,26 +62,29 @@ function main () {
     var offset = 0
       , limit = 20 //max as defined by API
       , steps = postCount / limit
+      , urls = []
 
     //is there a rem?
     steps = postCount % limit === 0 ? steps : Math.floor(steps) + 1
 
     URL = URL + '&offset={{offset}}&limit={{limit}}'
-    URL = S(URL).template({resource: 'posts', limit: limit}).s //limit doesn't change
-    function fetchIt (i) {
-      //console.log(offset)
-      var url = S(URL).template({offset: offset.toString()}).s
-      console.log(url)
-
-
+    for (var i = 0; i < steps; ++i) {
+      urls.push(S(URL).template({resource: 'posts', limit: limit, offset: offset.toString()}).s) //limit doesn't change
       offset += limit
-      if (i < steps)
-        fetchIt(i + 1)
-      else
-        done()
     }
-    fetchIt(1)
 
+    batch(urls).par(2)
+    .each(function(i, url, next) {
+      request({url: url, json: true}, function(err, resp, body) {
+        if (err || resp.statusCode !== 200) console.error(err)
+        iterateArticles(url, body.response, next)
+      })
+    })
+    .error(function(err) {
+      console.error(err)
+      console.error(err.stack)
+    })
+    .end(done)
   }
 
   function done () {
@@ -91,14 +94,7 @@ function main () {
   fetchBlogInfo()
 }
 
-//main()
-
-var u = "http://api.tumblr.com/v2/blog/techneur.tumblr.com/posts?api_key=fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4&offset=0&limit=20"
-request({url: u, json: true}, function(err, resp, body) {
-  iterateArticles(u, body.response, function() {
-    console.log('done')
-  })
-})
+main()
 
 
 function iterateArticles (url, data, callback) {
