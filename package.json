@@ -41,7 +41,7 @@
     "test": "mocha test"
   },
   "bin": {
-    "potter-wordpress": "./bin/sky-tumblr-export"
+    "sky-tumblr-export": "./bin/sky-tumblr-export"
   },
   "preferGlobal": true
 }
