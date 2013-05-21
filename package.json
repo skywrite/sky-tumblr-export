@@ -2,9 +2,7 @@
   "name": "sky-tumblr-export",
   "version": "0.0.1",
   "description": "Export your Tumblr blog into Markdown. Use it with Sky if you like.",
-  "homepage": [
-    ""
-  ],
+  "homepage": "https://github.com/skywrite/sky-tumblr-export",
   "repository": {
     "type": "git",
     "url": "git@github.com:skywrite/sky-tumblr-export.git"
@@ -22,7 +20,7 @@
   "licenses": [
     {
       "type": "MIT",
-      "url": ""
+      "url": "https://raw.github.com/skywrite/sky-tumblr-export/master/LICENSE"
     }
   ],
   "dependencies": {
@@ -41,7 +39,7 @@
     "test": "mocha test"
   },
   "bin": {
-    "potter-wordpress": "./bin/sky-tumblr-export"
+    "sky-tumblr-export": "./bin/sky-tumblr-export"
   },
   "preferGlobal": true
 }
