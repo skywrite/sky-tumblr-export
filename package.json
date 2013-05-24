@@ -1,6 +1,6 @@
 {
   "name": "sky-tumblr-export",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Export your Tumblr blog into Markdown.",
   "homepage": "https://github.com/skywrite/sky-tumblr-export",
   "repository": {
