@@ -1,14 +1,19 @@
 Node.js - sky-tumblr-export
 ================
 
-Export your Tumblr blog to Markdown. You can use [sky][sky] if you like.
+Export your Tumblr blog to Markdown.
 
 
 Why?
 ----
 
-I'm tired of using Tumblr. Well, actually I haven't used Tumblr since 2011. But I wanted the blog posts in Markdown so that I could use a static blog generator. I ultimately wrote my own [sky][sky]. But you can use this to dump your Tumblr blog and use any Markdown static blog generator that you like.
+I'm tired of using Tumblr. Well, actually I haven't used Tumblr since 2011. But I wanted the blog posts in Markdown so that I could use a static blog generator. I ultimately wrote my own static blog generator, [sky][sky]. But you can use this to dump your Tumblr blog and use any Markdown static blog generator that you like.
 
+
+Requirements
+------------
+
+You must have [pandoc](http://johnmacfarlane.net/pandoc/) installed. Get it here: http://code.google.com/p/pandoc/downloads/list
 
 
 Installation
@@ -270,6 +275,12 @@ Example
     └── sky
         └── config.json
 
+
+Contributors
+------------
+
+* [JP Richardson](http://github.com/jprichardson)
+* [Adam Brault](http://github.com/adambrault)
 
 
 License
