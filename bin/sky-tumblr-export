@@ -27,7 +27,7 @@ if (!program.url) return program.outputHelp();
 URL = S(URL).template({url: program.url, api_key: program.apiKey}).s
 
 function main () {
-  console.log('Fetching articles...')
+  console.log('\n  Fetching articles...\n')
   
   function fetchBlogInfo () {
     var url = S(URL).template({resource: 'info'}).s
@@ -95,11 +95,11 @@ function main () {
   fetchBlogInfo()
 }
 
-main()
+tryPandoc(main)
 
 
 function iterateArticles (url, data, callback) {
-  if (!data || !data.posts) cl.exit(102, "Got a bad response from %s", url)
+  if (!data || !data.posts) cl.exit(102, "  Got a bad response from %s", url)
   var articles = data.posts
 
   batch(articles).seq()
@@ -162,6 +162,14 @@ function outputArticle (article, next) {
       }
     })
   }
+}
+
+function tryPandoc (callback) {
+  var exec = require('child_process').exec
+  exec('pandoc --version', function(err, stderr, stdout) {
+    if (err) cl.exit(1, "\n  You must install pandoc.\n")
+    callback()
+  })
 }
 
 
