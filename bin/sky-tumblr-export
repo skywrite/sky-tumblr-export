@@ -10,6 +10,7 @@ var program = require('commander')
   , cl = require('cl')
   , batch = require('batchflow')
   , MarkdownPage = require('markdown-page').MarkdownPage
+  , util = require('util')
 
 var DEFAULT_API_KEY = "fuiKNFp9vQFvjLNvx4sUwti4Yb5yGutBN4Xh10LXZhhRKjWlV4"
   , URL = "http://api.tumblr.com/v2/blog/{{url}}/{{resource}}?api_key={{api_key}}"
