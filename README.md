@@ -32,18 +32,20 @@ CLI
 
     Options:
 
-      -h, --help          output usage information
-      -V, --version       output the version number
-      -u, --url [url]     REQUIRED. The url of the Tumblr blog.
-      -d, --dir <dir>     The directory to dump the files. Default is the current directory.
-      --api-key <apikey>  The API key. Optional.
+    -h, --help          output usage information
+    -V, --version       output the version number
+    -u, --url [url]     REQUIRED. The url of the Tumblr blog.
+    -d, --dir <dir>     The directory to dump the files. Default is the current directory.
+    -t, --titles        Output titles in markdown.
+    --debug             Set to debug mode.
+    --api-key <apikey>  The API key. Optional.
 
 
 
 Example
 ------
 
-    sky-tumblr-export -u techneur.com -d /tmp/techneur
+    sky-tumblr-export -u techneur.com -d /tmp/techneur --titles
 
 ### Results: ###
 
