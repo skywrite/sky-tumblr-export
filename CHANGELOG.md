@@ -1,3 +1,7 @@
+0.2.0 / 2013-08-21
+------------------
+* added support for `links`, `photos`, and `videos`.
+
 0.1.0 / 2013-05-24
 ------------------
 * bug fix: fixed script name after npm install. see #4
