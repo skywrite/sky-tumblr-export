@@ -19,10 +19,19 @@ program
   .version(require('../package.json').version)
   .option('-u, --url [url]', 'REQUIRED. The url of the Tumblr blog.')
   .option('-d, --dir <dir>', 'The directory to dump the files. Default is the current directory.', process.cwd())
+  .option('-t, --titles', 'Output titles in markdown.')
+  .option('--debug', 'Set to debug mode.')
   .option('--api-key <apikey>', 'The API key. Optional.', DEFAULT_API_KEY)
   .parse(process.argv);
 
 if (!program.url) return program.outputHelp();
+
+//strip leading http:// or https://
+if (S(program.url).startsWith('http://'))
+  program.url = program.url.replace('http://', '')
+if (S(program.url).startsWith('https://'))
+  program.url = program.url.replace('https://', '')
+
 
 URL = S(URL).template({url: program.url, api_key: program.apiKey}).s
 
@@ -31,7 +40,10 @@ function main () {
   
   function fetchBlogInfo () {
     var url = S(URL).template({resource: 'info'}).s
+
     request({url: url, json: true}, function(err, resp, body) {
+      if (program.debug)
+        console.log("DEUBG: %s".red.bold, url)
       if (err || resp.statusCode !== 200) cl.exit(100, err)
       outputSkyConfig(body.response)
     })
@@ -76,9 +88,11 @@ function main () {
 
     batch(urls).seq()
     .each(function(i, url, next) {
+      if (program.debug) 
+        console.log("DEUBG: %s".red.bold, url)
       request({url: url, json: true}, function(err, resp, body) {
         if (err || resp.statusCode !== 200) console.error(err)
-        iterateArticles(url, body.response, next)
+        iteratePosts(url, body.response, next)
       })
     })
     .error(function(err) {
@@ -98,13 +112,13 @@ function main () {
 tryPandoc(main)
 
 
-function iterateArticles (url, data, callback) {
+function iteratePosts (url, data, callback) {
   if (!data || !data.posts) cl.exit(102, "  Got a bad response from %s", url)
-  var articles = data.posts
+  var posts = data.posts
 
-  batch(articles).seq()
-  .each(function(i, article, next) {
-    outputArticle(article, next)
+  batch(posts).seq()
+  .each(function(i, post, next) {
+    outputPost(post, next)
   })
   .error(function(err) {
     console.error(err)
@@ -115,44 +129,64 @@ function iterateArticles (url, data, callback) {
   })
 }
 
-function logArticle (title, date) {
+function logPost (title, date) {
   var text = colors.cyan(S('Got').padLeft(10)) + ' : ' + colors.green('[' + S(date.toDateString()).padRight(12) + '] ') + title
   console.log(text)
 }
 
-function outputArticle (article, next) {
+function outputPost (post, next) {
   var mdp = MarkdownPage.create()
-    , date = new Date(article.date)
+    , date = new Date(post.date)
 
   function gotoNext () { //output file too
     var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
-      , file = path.join(program.dir, 'articles', ds, article.slug + '.md')
+      , file = path.join(program.dir, 'posts', ds, post.slug + '.md')
       , data = mdp.genOutput()
 
     fs.outputFile(file, data, function(err) {
       if (err) console.error(err)
 
-      logArticle(article.title, date)
+      logPost(post.title, date)
       next()
     })
   }
 
-  mdp.title = article.title
-  mdp.metadata.id = article.id
-  mdp.metadata.link = article.post_url
-  mdp.metadata.slug = article.slug
+  mdp.metadata.id = post.id
+  mdp.metadata.link = post.post_url
+  mdp.metadata.slug = post.slug
   mdp.metadata.date = date
 
-  if (article.state === 'published')
+  if (post.state === 'published')
     mdp.metadata.publish = date
   
-  mdp.metadata.tags = article.tags
+  mdp.metadata.tags = post.tags
 
-  if (article.format !== 'html') {
-    this.markdown = article.body
+  //if the type is something other than "text"
+  switch (post.type) {
+    case "link":
+      post.body = '<a href="' + post.url + '">' + post.url + "</a>\n\n"
+      post.body += post.description
+      break;
+    case "photo":
+      post.title = S(post.caption).stripTags().s
+      post.body = '<img src="' + post.photos[0].original_size.url + '">'
+      break;
+    case "video":
+      post.title = S(post.caption).stripTags().s
+      post.body =  post.player[post.player.length - 1].embed_code
+      break;
+  }
+
+  if (program.titles)
+    mdp.title = post.title
+  
+  mdp.metadata.title = post.title
+
+  /*if (post.format !== 'html') {
+    this.markdown = post.body
     gotoNext()
-  } else {
-    pandoc(article.body, 'html', 'markdown', function(err, result) {
+  } else {*/
+    pandoc(post.body, 'html', 'markdown', function(err, result) {
       if (err) { 
         mdp.markdown = util.format('**[ERROR: sky-tumblr-export: %s]**',err)
         gotoNext()
@@ -161,7 +195,7 @@ function outputArticle (article, next) {
         gotoNext()
       }
     })
-  }
+  /*}*/
 }
 
 function tryPandoc (callback) {
