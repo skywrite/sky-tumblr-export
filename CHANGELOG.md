@@ -1,3 +1,7 @@
+0.3.0 / 2014-04-28
+------------------
+* added raw post in metadata #6
+
 0.2.0 / 2013-08-21
 ------------------
 * added support for `links`, `photos`, and `videos`.
