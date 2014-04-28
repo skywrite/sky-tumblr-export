@@ -155,6 +155,7 @@ function outputPost (post, next) {
   mdp.metadata.link = post.post_url
   mdp.metadata.slug = post.slug
   mdp.metadata.date = date
+  mdp.metadata.raw = JSON.stringify(post)
 
   if (post.state === 'published')
     mdp.metadata.publish = date
