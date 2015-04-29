@@ -139,8 +139,13 @@ function outputPost (post, next) {
     , date = new Date(post.date)
 
   function gotoNext () { //output file too
+    if (post.slug && post.slug.length > 0) {
+      slug = post.slug
+    } else {
+      slug = post.id
+    }
     var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
-      , file = path.join(program.dir, 'posts', ds, post.slug + '.md')
+      , file = path.join(program.dir, 'posts', ds, slug + '.md')
       , data = mdp.genOutput()
 
     fs.outputFile(file, data, function(err) {
@@ -167,14 +172,30 @@ function outputPost (post, next) {
     case "link":
       post.body = '<a href="' + post.url + '">' + post.url + "</a>\n\n"
       post.body += post.description
+      post.format = 'html'
       break;
     case "photo":
       post.title = S(post.caption).stripTags().s
-      post.body = '<img src="' + post.photos[0].original_size.url + '">'
+      post.body = ''
+      for (var i = post.photos.length - 1; i >= 0; i--) {
+        photo = post.photos[i]
+        post.body = post.body + '<img src="' + photo.original_size.url + '">\n'
+      };
+      post.format = 'html'
       break;
     case "video":
       post.title = S(post.caption).stripTags().s
       post.body =  post.player[post.player.length - 1].embed_code
+      post.format = 'html'
+      break;
+    case "quote":
+      if (post.caption && post.caption.length) {
+        post.title = S(post.caption).stripTags().s
+      } else {
+        post.title = post.text
+      }
+      post.body =  '<blockquote>' + post.text + '</blockquote>\n' + post.source
+      post.format = 'html'
       break;
   }
 
@@ -183,10 +204,10 @@ function outputPost (post, next) {
   
   mdp.metadata.title = post.title
 
-  /*if (post.format !== 'html') {
-    this.markdown = post.body
+  if (post.format === 'markdown') {
+    mdp.markdown = post.body
     gotoNext()
-  } else {*/
+  } else {
     pandoc(post.body, 'html', 'markdown', function(err, result) {
       if (err) { 
         mdp.markdown = util.format('**[ERROR: sky-tumblr-export: %s]**',err)
@@ -196,7 +217,7 @@ function outputPost (post, next) {
         gotoNext()
       }
     })
-  /*}*/
+  }
 }
 
 function tryPandoc (callback) {
@@ -206,7 +227,3 @@ function tryPandoc (callback) {
     callback()
   })
 }
-
-
-
-
