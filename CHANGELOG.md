@@ -1,3 +1,7 @@
+0.4.0 / 2015-05-04
+------------------
+- added photos, quote, and other blog generator support https://github.com/skywrite/sky-tumblr-export/pull/9
+
 0.3.0 / 2014-04-28
 ------------------
 * added raw post in metadata #6
