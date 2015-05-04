@@ -20,8 +20,11 @@ program
   .option('-u, --url [url]', 'REQUIRED. The url of the Tumblr blog.')
   .option('-d, --dir <dir>', 'The directory to dump the files. Default is the current directory.', process.cwd())
   .option('-t, --titles', 'Output titles in markdown.')
+  .option('-g, --generator <generator>', 'To static site generator type, support hugo only for now.')
   .option('--debug', 'Set to debug mode.')
   .option('--api-key <apikey>', 'The API key. Optional.', DEFAULT_API_KEY)
+  .option('--max-title <maxtitle>', 'The max length of title. Optional.', 10)
+  .option('--download-images', 'Set to debug mode. Optional.', false)
   .parse(process.argv);
 
 if (!program.url) return program.outputHelp();
@@ -34,6 +37,8 @@ if (S(program.url).startsWith('https://'))
 
 
 URL = S(URL).template({url: program.url, api_key: program.apiKey}).s
+
+var all_photos = []
 
 function main () {
   console.log('\n  Fetching articles...\n')
@@ -103,7 +108,23 @@ function main () {
   }
 
   function done () {
-    console.log('Done')
+    batch(all_photos).parallel()
+    .each(function(i, photo, next) {
+      var photo_file = fs.createOutputStream(path.join(program.dir, 'static', 'images', photo['filename']))
+      photo_file.on('close', function() {
+        var text = colors.cyan(S('Downloaded').padLeft(10)) + ' : ' + photo['url']
+        console.log(text)
+        next()
+      })
+      request(photo['url']).pipe(photo_file)
+    })
+    .error(function(err) {
+      console.error(err)
+      console.error(err.stack)
+    })
+    .end(function() {
+      console.log('Done')
+    })
   }
 
   fetchBlogInfo()
@@ -134,14 +155,47 @@ function logPost (title, date) {
   console.log(text)
 }
 
+MarkdownPage.prototype.genOutputForHugo = function() {
+  var data = JSON.stringify(this.metadata, null, 4)
+  if (this.title) {
+    data += this.title + '\n'
+    data += S('=').repeat(this.title.length) + '\n\n'
+  }
+  data += '\n\n\n'
+  data += this.markdown + '\n'
+  return data;
+}
+
 function outputPost (post, next) {
   var mdp = MarkdownPage.create()
     , date = new Date(post.date)
 
   function gotoNext () { //output file too
-    var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
-      , file = path.join(program.dir, 'posts', ds, post.slug + '.md')
-      , data = mdp.genOutput()
+    if (post.slug && post.slug.length > 0) {
+      slug = post.slug
+    } else {
+      slug = post.id
+    }
+    var file, data
+    if (program.generator === 'hugo') {
+      file = path.join(program.dir, 'content', post.type, slug + '.md')
+
+      if (post.state === 'published')
+        mdp.metadata.publishdate = date
+
+      data = mdp.genOutputForHugo()
+    } else {
+      var ds = date.getFullYear() + '/' + ('0' + (date.getMonth() + 1)).slice(-2)
+      file = path.join(program.dir, 'posts', ds, slug + '.md')
+
+      mdp.metadata.id = post.id
+      mdp.metadata.link = post.post_url
+      mdp.metadata.raw = JSON.stringify(post)
+      if (post.state === 'published')
+        mdp.metadata.publish = date
+
+      data = mdp.genOutput()
+    }
 
     fs.outputFile(file, data, function(err) {
       if (err) console.error(err)
@@ -151,15 +205,8 @@ function outputPost (post, next) {
     })
   }
 
-  mdp.metadata.id = post.id
-  mdp.metadata.link = post.post_url
   mdp.metadata.slug = post.slug
   mdp.metadata.date = date
-  mdp.metadata.raw = JSON.stringify(post)
-
-  if (post.state === 'published')
-    mdp.metadata.publish = date
-  
   mdp.metadata.tags = post.tags
 
   //if the type is something other than "text"
@@ -167,14 +214,47 @@ function outputPost (post, next) {
     case "link":
       post.body = '<a href="' + post.url + '">' + post.url + "</a>\n\n"
       post.body += post.description
+      post.format = 'html'
       break;
     case "photo":
-      post.title = S(post.caption).stripTags().s
-      post.body = '<img src="' + post.photos[0].original_size.url + '">'
+      caption = S(post.caption)
+      caption_lines = caption.split('\n')
+      title = caption_lines.splice(0, 1)
+      title = S(title).stripTags().s.trim()
+      post.title = title
+      post.body = ''
+      for (var i = post.photos.length - 1; i >= 0; i--) {
+        photo = post.photos[i]
+        photo_url = photo.original_size.url
+        if (program.downloadImages) {
+          photo_url_parts = photo_url.split('/')
+          photo_filename = photo_url_parts[photo_url_parts.length - 1]
+          all_photos.push({url: photo_url, filename: photo_filename})
+          photo_url = '/images/' + photo_filename
+        }
+        post.body += '<img src="' + photo_url + '">\n'
+      }
+      if (caption_lines.length > 0) {
+        post.body += caption_lines.join('\n')
+      }
+      post.format = 'html'
       break;
     case "video":
       post.title = S(post.caption).stripTags().s
       post.body =  post.player[post.player.length - 1].embed_code
+      post.format = 'html'
+      break;
+    case "quote":
+      if (post.caption && post.caption.length) {
+        post.title = S(post.caption).stripTags().s
+      } else {
+        post.title = S(post.text).stripTags().s
+        if (post.title.length > program.maxTitle) {
+          post.title = post.title.substr(0, program.maxTitle) + '...'
+        }
+      }
+      post.body =  '<blockquote>' + post.text + '</blockquote>\n' + post.source
+      post.format = 'html'
       break;
   }
 
@@ -183,10 +263,10 @@ function outputPost (post, next) {
   
   mdp.metadata.title = post.title
 
-  /*if (post.format !== 'html') {
-    this.markdown = post.body
+  if (post.format === 'markdown') {
+    mdp.markdown = post.body
     gotoNext()
-  } else {*/
+  } else {
     pandoc(post.body, 'html', 'markdown', function(err, result) {
       if (err) { 
         mdp.markdown = util.format('**[ERROR: sky-tumblr-export: %s]**',err)
@@ -196,7 +276,7 @@ function outputPost (post, next) {
         gotoNext()
       }
     })
-  /*}*/
+  }
 }
 
 function tryPandoc (callback) {
@@ -206,7 +286,3 @@ function tryPandoc (callback) {
     callback()
   })
 }
-
-
-
-
