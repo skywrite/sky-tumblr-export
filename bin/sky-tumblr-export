@@ -241,7 +241,7 @@ function outputPost (post, next) {
       break;
     case "video":
       post.title = S(post.caption).stripTags().s
-      post.body =  post.player[post.player.length - 1].embed_code
+      post.body =  post.player[post.player.length - 1].embed_code || ''
       post.format = 'html'
       break;
     case "quote":
