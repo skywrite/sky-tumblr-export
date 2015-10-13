@@ -1,3 +1,7 @@
+0.5.0 / 2015-10-13
+------------------
+- Prevent `pandoc` from throwing an error if `embode_code` is `false`. See: https://github.com/skywrite/sky-tumblr-export/pull/10
+
 0.4.0 / 2015-05-04
 ------------------
 - added photos, quote, and other blog generator support https://github.com/skywrite/sky-tumblr-export/pull/9
